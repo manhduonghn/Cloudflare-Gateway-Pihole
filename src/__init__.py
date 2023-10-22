@@ -3,6 +3,7 @@ import re
 import logging
 from libs import requests
 from libs.dotenv import load_dotenv
+from requests.adapters import HTTPAdapter
 from src.colorlogs import ColoredLevelFormatter
 
 
@@ -38,3 +39,8 @@ if not CF_API_TOKEN or not CF_IDENTIFIER:
 # Session 
 session = requests.Session()
 session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
+
+# Enable keep-alive
+adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
