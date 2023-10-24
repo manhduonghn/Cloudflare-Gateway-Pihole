@@ -1,113 +1,321 @@
-import logging
-import requests
-from src import cloudflare, convert
+import os
+import json 
+from src import (
+    error,
+    session,
+    make_domains,
+    silent_error,
+    PREFIX,
+    BASE_URL,
+    MAX_LISTS,
+    MAX_LIST_SIZE,
+)
 
 class App:
-    def __init__(self, adlist_name: str, adlist_urls: list[str],whitelist_urls: list[str]):
-        self.adlist_name = adlist_name
-        self.adlist_urls = adlist_urls
-        self.whitelist_urls = whitelist_urls
-        self.name_prefix = f"[AdBlock-{adlist_name}]"
-
     def run(self):
-        block_content = ""
-        white_content = ""
-        for url in self.adlist_urls:
-            block_content += self.download_file(url) 
-        for url in self.whitelist_urls:
-            white_content += self.download_file(url)
-        domains = convert.convert_to_domain_list(block_content, white_content)
-
-        # check if number of domains exceeds the limit
-        if len(domains) == 0:
-            logging.warning("No domains found in the adlist file. Exiting script.")
-            return 
         
-        # stop script if the number of final domains exceeds the limit
-        if len(domains) > 300000:
-            logging.warning("The number of final domains exceeds the limit. Exiting script.")
-            return
+        # Process domains lists
+        converter = make_domains.DomainConverter()
+        converter.process_urls()
+
+        # Check if the file has changed
+        if os.system("git diff --exit-code domains_ads.txt > /dev/null") == 0:
+            silent_error("The domains list has not changed")
+
+        # Ensure the file is not empty
+        if os.path.getsize("domains_ads.txt") == 0:
+            error("The domains list is empty")
+
+        # Calculate the number of lines in the file
+        with open("domains_ads.txt") as file:
+            total_lines = len(file.readlines())
+
+        # Ensure the file is not over the maximum allowed lines
+        if total_lines > MAX_LIST_SIZE * MAX_LISTS:
+            error(f"The domains list has more than {MAX_LIST_SIZE * MAX_LISTS} lines")
+
+        # Calculate the number of lists required
+        total_lists = total_lines // MAX_LIST_SIZE
+        if total_lines % MAX_LIST_SIZE != 0:
+            total_lists += 1
         
-        # check if the list is already in Cloudflare
-        cf_lists = cloudflare.get_lists(self.name_prefix)
-        logging.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
-
-        # compare the lists size
-        if len(domains) == sum([l["count"] for l in cf_lists]):
-            logging.warning("Lists are the same size, checking policy")
-            cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
-
-            if len(cf_policies) == 0:
-                logging.info("No firewall policy found, creating new policy")
-                cf_policies = cloudflare.create_gateway_policy(
-                    f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
-                )
-            else:
-                logging.warning("Firewall policy already exists, exiting script")
-                return
-                
-            return 
-
-        # Delete existing policy created by script
-        policy_prefix = f"{self.name_prefix} Block Ads"
-        deleted_policies = cloudflare.delete_gateway_policy(policy_prefix)
-        logging.info(f"Deleted {deleted_policies} gateway policies")
-
-        # delete the lists
-        for l in cf_lists:
-            logging.info(f"Deleting list {l['name']} - ID:{l['id']} ")
-            cloudflare.delete_list(l["name"], l["id"])
-        cf_lists = []
-
-        # chunk the domains into lists of 1000 and create them
-        for chunk in self.chunk_list(domains, 1000):
-            list_name = f"{self.name_prefix} {len(cf_lists) + 1}"
-            logging.info(f"Creating list {list_name}")
-            _list = cloudflare.create_list(list_name, chunk)
-            cf_lists.append(_list)
-
-        # get the gateway policies
-        cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
-        logging.info(f"Number of policies in Cloudflare: {len(cf_policies)}")
-
-        # setup the gateway policy
-        if len(cf_policies) == 0:
-            logging.info("Creating firewall policy")
-            cf_policies = cloudflare.create_gateway_policy(
-                f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
-            )
-
-        elif len(cf_policies) != 1:
-            logging.error("More than one firewall policy found")
-            raise Exception("More than one firewall policy found")
-
+        response = session.get(f"{BASE_URL}/lists")
+        if response.status_code == 200:
+            current_lists = response.json()
         else:
-            logging.info("Updating firewall policy")
-            cloudflare.update_gateway_policy(
-                f"{self.name_prefix} Block Ads", cf_policies[0]["id"], [l["id"] for l in cf_lists]
+            error("Failed to get current lists from Cloudflare")
+
+        # Get current policies from Cloudflare
+        response = session.get(f"{BASE_URL}/rules")
+        if response.status_code == 200:
+            current_policies = response.json()
+        else:
+            error("Failed to get current policies from Cloudflare")
+
+        # Calculate the number of lists that have PREFIX in name
+        try:
+            current_lists_count = len([list_item for list_item in current_lists["result"] if PREFIX in list_item["name"]])
+        except TypeError:
+            current_lists_count = 0
+
+        # Calculate the number of lists that don't have PREFIX in name
+        try:
+            current_lists_count_without_prefix = len([list_item for list_item in current_lists["result"] if PREFIX not in list_item["name"]])
+        except TypeError:
+            current_lists_count_without_prefix = 0
+
+        # Ensure total_lists name is less than or equal to MAX_LISTS - current_lists_count_without_prefix
+        if total_lists > MAX_LISTS - current_lists_count_without_prefix:
+            error(f"The number of lists required ({total_lists}) is greater than the maximum allowed ({MAX_LISTS - current_lists_count_without_prefix})")
+
+        # Split lists into chunks of MAX_LIST_SIZE
+        os.system(f"split -l {MAX_LIST_SIZE} domains_ads.txt domains_ads.txt.")
+
+        # Create array of chunked lists
+        chunked_lists = [file for file in os.listdir() if file.startswith("domains_ads.txt.")]
+
+        # Create array of used list IDs
+        used_list_ids = []
+
+        # Create array of excess list IDs
+        excess_list_ids = []
+
+        # Create list counter
+        list_counter = current_lists_count + 1
+
+        # Update existing lists
+        if current_lists_count > 0:
+            for list_item in current_lists["result"]:
+                if PREFIX in list_item["name"]:
+                    # If there are no more chunked lists, mark the list ID for deletion
+                    if not chunked_lists:
+                        print(f"Marking list {list_item['id']} for deletion...")
+                        excess_list_ids.append(list_item['id'])
+                        continue
+
+                    print(f"Updating list {list_item['id']}...")
+
+                    # Get list contents
+                    response = session.get(
+                        f"{BASE_URL}/lists/{list_item['id']}/items?limit={MAX_LIST_SIZE}"
+                    )
+                    if response.status_code == 200:
+                        list_items = response.json()
+                    else:
+                        error(f"Failed to get list {list_item['id']} contents")
+
+                    # Create list item values for removal
+                    list_items_values = [item['value'] for item in list_items["result"] if item["value"] is not None]
+
+                    # Create list item array for appending from the first chunked list
+                    with open(chunked_lists[0]) as file:
+                        list_items_array = [{"value": line.strip()} for line in file if line.strip()]
+
+                    # Create payload
+                    payload = {
+                        "append": list_items_array,
+                        "remove": list_items_values
+                    }
+
+                    # Patch list
+                    response = session.patch(
+                        f"{BASE_URL}/lists/{list_item['id']}",
+                        json=payload
+                    )
+                    if response.status_code == 200:
+                        list = response.json()
+                    else:
+                        error(f"Failed to patch list {list_item['id']}")
+
+                    # Store the list ID
+                    used_list_ids.append(list_item['id'])
+
+                    # Delete the first chunked file
+                    os.remove(chunked_lists[0])
+                    chunked_lists.pop(0)
+
+                    # Increment list counter
+                    list_counter += 1
+
+        # Create extra lists if required
+        for file in chunked_lists:
+            print("Creating list...")
+
+            # Format list counter
+            formatted_counter = f"{list_counter:03d}"
+
+            # Create payload
+            with open(file) as list_file:
+                list_items = [{"value": line.strip()} for line in list_file if line.strip()]
+
+            payload = {
+                "name": f"{PREFIX} - {formatted_counter}",
+                "type": "DOMAIN",
+                "items": list_items
+            }
+
+            # Create list
+            response = session.post(
+                f"{BASE_URL}/lists",
+                json=payload
             )
-        logging.info("Done")
-        
-    def download_file(self, url: str):
-        logging.info(f"Downloading file from {url}")
-        r = requests.get(url, allow_redirects=True)
-        logging.info(f"File size: {len(r.content)}")
-        return r.content.decode("utf-8")
+            if response.status_code == 200:
+                list = response.json()
+            else:
+                error("Failed to create list")
 
-    def chunk_list(self, _list: list[str], n: int):
-        for i in range(0, len(_list), n):
-            yield _list[i : i + n]
+            # Store the list ID
+            used_list_ids.append(list["result"]["id"])
 
-    def delete(self):
-        # Delete gateway policy
-        policy_prefix = f"{self.name_prefix} Block Ads"
-        deleted_policies = cloudflare.delete_gateway_policy(policy_prefix)
-        logging.info(f"Deleted {deleted_policies} gateway policies")
+            # Delete the file
+            os.remove(file)
 
-        # Delete lists
-        cf_lists = cloudflare.get_lists(self.name_prefix)
-        for l in cf_lists:
-            logging.info(f"Deleting list {l['name']} - ID:{l['id']} ")
-            cloudflare.delete_list(l["name"], l["id"])
-        logging.info("Deletion completed")
-                          
+            # Increment list counter
+            list_counter += 1
+
+        # Ensure policy called exactly PREFIX exists, else create it
+        policy_id = None
+        for policy_item in current_policies["result"]:
+            if policy_item["name"] == PREFIX:
+                policy_id = policy_item["id"]
+
+        # Initialize an empty list to store conditions
+        conditions = []
+
+        # Loop through the used_list_ids and build the "conditions" array dynamically
+        if len(used_list_ids) == 1:
+            conditions = {
+                "any": {
+                    "in": {
+                        "lhs": {
+                            "splat": "dns.domains"
+                        },
+                        "rhs": f"${used_list_ids[0]}"
+                    }
+                }
+            }
+        else:
+            for list_id in used_list_ids:
+                conditions.append({
+                    "any": {
+                        "in": {
+                            "lhs": {
+                                "splat": "dns.domains"
+                            },
+                            "rhs": f"${list_id}"
+                        }
+                    }
+                })
+
+            conditions = {
+                "or": conditions
+            }
+
+        # Create the JSON data dynamically
+        json_data = {
+            "name": PREFIX,
+            "conditions": [
+                {
+                    "type": "traffic",
+                    "expression": conditions
+                }
+            ],
+            "action": "block",
+            "enabled": True,
+            "description": "",
+            "rule_settings": {
+                "block_page_enabled": False,
+                "block_reason": "",
+                "biso_admin_controls": {
+                    "dcp": False,
+                    "dcr": False,
+                    "dd": False,
+                    "dk": False,
+                    "dp": False,
+                    "du": False
+                },
+                "add_headers": {},
+                "ip_categories": False,
+                "override_host": "",
+                "override_ips": None,
+                "l4override": None,
+                "check_session": None
+            },
+            "filters": ["dns"]
+        }
+
+        if not policy_id or policy_id == "null":
+            # Create the policy
+            print("Creating policy...")
+            response = session.post(
+                f"{BASE_URL}/rules",
+                json=json_data
+            )
+            if response.status_code != 200:
+                error("Failed to create policy")
+        else:
+            # Update the policy
+            print(f"Updating policy {policy_id}...")
+            response = session.put(
+                f"{BASE_URL}/rules/{policy_id}",
+                json=json_data
+            )
+            if response.status_code != 200:
+                error("Failed to update policy")
+
+        # Delete excess lists in excess_list_ids
+        for list_id in excess_list_ids:
+            print(f"Deleting list {list_id}...")
+            response = session.delete(
+                f"{BASE_URL}/lists/{list_id}"
+            )
+            if response.status_code != 200:
+                error(f"Failed to delete list {list_id}")
+
+        # Add, commit and push the file
+        os.system("git config --global user.email \"{GITHUB_ACTOR_ID}+{GITHUB_ACTOR}@users.noreply.github.com\"")
+        os.system("git config --global user.name \"$(gh api /users/${GITHUB_ACTOR} | jq .name -r)\"")
+        os.system("git add domains_ads.txt")
+        os.system("git commit -m \"Update domains list\" --author=.")
+        os.system("git push origin main")
+
+
+    def leave(self):
+
+        # Get current lists from Cloudflare
+
+        response = session.get(
+            f"{BASE_URL}/lists"
+        )
+        current_lists = response.json()
+        if response.status_code != 200:
+            error(f"Failed to get current list")
+
+        # Get current policies from Cloudflare
+        response = session.get(
+            f"{BASE_URL}/rules"
+        )
+        current_policies = response.json()
+        if response.status_code != 200:
+            error(f"Failed to get current policies")
+
+        # Delete policy with PREFIX as name
+        print("Deleting policy...")
+        policy_id = next((policy["id"] for policy in current_policies["result"] if policy["name"] == PREFIX), None)
+        if policy_id:
+            session.delete(
+                f"{BASE_URL}/rules/{policy_id}"
+            )
+            if response.status_code != 200:
+                error(f"Failed to delete policy")
+
+        # Delete all lists with PREFIX in name
+        print("Deleting lists...")
+        for lst in current_lists["result"]:
+            if PREFIX in lst["name"]:
+                print(f"Deleting list: {lst['name']}")
+                session.delete(
+                    f"{BASE_URL}/lists/{lst['id']}"
+                )
+                if response.status_code != 200:
+                    error(f"Failed to delete list {lst['name']}")
