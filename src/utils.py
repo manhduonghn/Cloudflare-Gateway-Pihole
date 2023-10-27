@@ -3,6 +3,7 @@ import requests
 from src import cloudflare, convert
 
 class App:
+    
     def __init__(self, adlist_name: str, adlist_urls: list[str],whitelist_urls: list[str]):
         self.adlist_name = adlist_name
         self.adlist_urls = adlist_urls
@@ -10,6 +11,8 @@ class App:
         self.name_prefix = f"[AdBlock-{adlist_name}]"
 
     def run(self):
+        
+        # Download block and white content 
         block_content = ""
         white_content = ""
         for url in self.adlist_urls:
@@ -17,11 +20,12 @@ class App:
         for url in self.whitelist_urls:
             white_content += self.download_file(url)
 
-        
+        # Add dynamic black list
         with open("dynamic_blacklist.txt", "r") as black_file:
             blacklist_content = black_file.read()
             block_content += blacklist_content
         
+        # Add dynamic white list 
         with open("dynamic_whitelist.txt", "r") as white_file:
             whitelist_content = white_file.read()
             white_content += whitelist_content
