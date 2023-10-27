@@ -22,5 +22,5 @@ if __name__ == "__main__":
     whitelist_urls = read_urls_from_file("whitelist.ini")
     adlist_name = "DNS-Filters"
     app = App(adlist_name, adlist_urls, whitelist_urls)
-    app.delete()  # Leave script 
-    # app.run()
+    # app.delete()  # Leave script 
+    app.run()
