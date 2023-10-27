@@ -17,10 +17,15 @@ class App:
         for url in self.whitelist_urls:
             white_content += self.download_file(url)
 
-        with open("dynamic_blacklist.txt", "w") as block_file:
-            block_file.write(block_content)
-        with open("dynamic_whitelist.txt", "w") as white_file:
-            white_file.write(white_content)
+        
+        with open("dynamic_blacklist.txt", "r") as black_file:
+            blacklist_content = black_file.read()
+            block_content += blacklist_content
+        
+        with open("dynamic_whitelist.txt", "r") as white_file:
+            whitelist_content = white_file.read()
+            white_content += whitelist_content
+        
         domains = convert.convert_to_domain_list(block_content, white_content)
 
         # check if number of domains exceeds the limit
