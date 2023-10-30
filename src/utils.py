@@ -21,12 +21,12 @@ class App:
             white_content += self.download_file(url)
 
         # Add dynamic black list
-        with open("dynamic_blacklist.txt", "r") as black_file:
+        with open("./lists/dynamic_blacklist.txt", "r") as black_file:
             blacklist_content = black_file.read()
             block_content += blacklist_content
         
         # Add dynamic white list 
-        with open("dynamic_whitelist.txt", "r") as white_file:
+        with open("./lists/dynamic_whitelist.txt", "r") as white_file:
             whitelist_content = white_file.read()
             white_content += whitelist_content
         
