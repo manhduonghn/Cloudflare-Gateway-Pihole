@@ -18,8 +18,8 @@ def read_urls_from_file(filename):
 
 
 if __name__ == "__main__":
-    adlist_urls = read_urls_from_file("adlist.ini")
-    whitelist_urls = read_urls_from_file("whitelist.ini")
+    adlist_urls = read_urls_from_file("./lists/adlist.ini")
+    whitelist_urls = read_urls_from_file("./lists/whitelist.ini")
     adlist_name = "DNS-Filters"
     app = App(adlist_name, adlist_urls, whitelist_urls)
     # app.delete()  # Leave script 
