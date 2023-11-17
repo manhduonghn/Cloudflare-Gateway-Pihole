@@ -1,6 +1,6 @@
 import os
 import re
-import logging
+from libs import loguru
 from libs import requests
 from libs.dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
@@ -17,16 +17,6 @@ domain_pattern = re.compile(
 ip_pattern = re.compile(
     r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
 )
-
-
-# Logging Level Color 
-logging.getLogger().setLevel(logging.INFO)
-formatter = ColoredLevelFormatter("%(levelname)s: %(message)s")
-console = logging.StreamHandler()
-console.setFormatter(ColoredLevelFormatter("%(levelname)s: %(message)s"))
-logger = logging.getLogger()
-logger.addHandler(console)
-
 
 # load env
 load_dotenv()
