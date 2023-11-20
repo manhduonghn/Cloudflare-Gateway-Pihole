@@ -67,7 +67,7 @@ class App:
         firewall_policies = cloudflare.get_firewall_policies(policy_prefix)
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
-        logger.info(f"Deleted {deleted_policies} gateway policies")
+        logger.info(f"Deleted gateway policies")
 
         # delete the lists
         for l in cf_lists:
@@ -121,7 +121,7 @@ class App:
 
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
-        logger.info(f"Deleted {deleted_policies} gateway policies")
+        logger.info(f"Deleted gateway policies")
 
         # Delete lists
         cf_lists = cloudflare.get_lists(self.name_prefix)
