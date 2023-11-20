@@ -4,7 +4,6 @@ from libs import loguru
 from libs import requests
 from libs.dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
-from src.colorlogs import ColoredLevelFormatter
 
 
 # Regex Pattern
