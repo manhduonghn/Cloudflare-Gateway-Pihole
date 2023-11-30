@@ -16,9 +16,9 @@ def create_list(name: str, domains: list[str]):
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
         json={
             "name": name,
-            "description": "Created by script.",
+            "description": "Ads & Tracking Domains",
             "type": "DOMAIN",
-            "items": [*map(lambda d: {"value": d}, domains)],
+            "items": [{"value": domain} for domain in domains],
         },
     )
     if r.status_code != 200:
@@ -51,7 +51,7 @@ def create_gateway_policy(name: str, list_ids: list[str]):
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
         json={
             "name": name,
-            "description": "Created by script.",
+            "description": "Block Ads & Tracking",
             "action": "block",
             "enabled": True,
             "filters": ["dns"],
@@ -71,9 +71,14 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
         json={
             "name": name,
+            "description": "Block Ads & Tracking",
             "action": "block",
             "enabled": True,
+            "filters": ["dns"],
             "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
+            "rule_settings": {
+                "block_page_enabled": False,
+            },
         },
     )
     if r.status_code != 200:
@@ -87,4 +92,4 @@ def delete_gateway_policy(policy_id: str):
     )
     if r.status_code != 200:
         raise Exception("Failed to delete Cloudflare gateway firewall policy")
-    return 1
+    return r.json()["result"]
