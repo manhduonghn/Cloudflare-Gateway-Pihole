@@ -1,7 +1,11 @@
 from loguru import logger
-from src import cloudflare, convert, utils
+from src import (
+    utils,
+    convert, 
+    cloudflare
+)
 
-class App:
+class CloudflareManager:
     
     def __init__(self, adlist_name: str, adlist_urls: list[str],whitelist_urls: list[str]):
         self.adlist_name = adlist_name
@@ -103,7 +107,7 @@ class App:
             )
         logger.info("Done")
 
-    def delete(self):
+    def leave(self):
         # Delete gateway policy
         policy_prefix = f"{self.name_prefix} Block Ads"
         firewall_policies = cloudflare.get_firewall_policies(policy_prefix)
@@ -123,6 +127,6 @@ if __name__ == "__main__":
     adlist_urls = utils.read_urls_from_file("./lists/adlist.ini")
     whitelist_urls = utils.read_urls_from_file("./lists/whitelist.ini")
     adlist_name = "DNS-Filters"
-    app = App(adlist_name, adlist_urls, whitelist_urls)
-    # app.delete()  # Leave script 
-    app.run()
+    cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
+    cloudflaremanager.leave()  # Leave script 
+    # cloudflaremanager.run()
