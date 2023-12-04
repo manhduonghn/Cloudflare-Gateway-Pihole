@@ -128,5 +128,5 @@ if __name__ == "__main__":
     whitelist_urls = utils.read_urls_from_file("./lists/whitelist.ini")
     adlist_name = "DNS-Filters"
     cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
-    cloudflaremanager.leave()  # Leave script 
-    # cloudflaremanager.run()
+    # cloudflaremanager.leave()  # Leave script 
+    cloudflaremanager.run()
