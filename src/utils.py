@@ -2,13 +2,13 @@ import requests
 from loguru import logger
 from configparser import ConfigParser
 
-def download_file(self, url: str):
+def download_file(url: str):
     logger.info(f"Downloading file from {url}")
     r = requests.get(url, allow_redirects=True)
     logger.info(f"File size: {len(r.content)}")
     return r.content.decode("utf-8")
 
-def chunk_list(self, _list: list[str], n: int):
+def chunk_list(_list: list[str], n: int):
     for i in range(0, len(_list), n):
         yield _list[i : i + n]
 
