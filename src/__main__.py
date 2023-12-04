@@ -15,9 +15,9 @@ class App:
         block_content = ""
         white_content = ""
         for url in self.adlist_urls:
-            block_content += utils.download_file(adlist_urls) 
+            block_content += utils.download_file(url) 
         for url in self.whitelist_urls:
-            white_content += utils.download_file(whitelist_urls)
+            white_content += utils.download_file(url)
 
         # Add dynamic black list
         with open("./lists/dynamic_blacklist.txt", "r") as black_file:
