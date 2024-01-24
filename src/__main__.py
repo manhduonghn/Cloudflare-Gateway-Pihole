@@ -79,7 +79,7 @@ class CloudflareManager:
 
         # chunk the domains into lists of 1000 and create them
         for chunk in utils.chunk_list(domains, 1000):
-            list_name = f"{self.name_prefix} {len(cf_lists) + 1:03d}"
+            list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
             logger.info(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
             cf_lists.append(_list)
@@ -127,5 +127,5 @@ if __name__ == "__main__":
     whitelist_urls = utils.read_urls_from_file("./lists/whitelist.ini")
     adlist_name = "DNS-Filters"
     cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
-    # cloudflaremanager.leave()  # Leave script 
-    cloudflaremanager.run()
+    cloudflaremanager.leave()  # Leave script 
+    # cloudflaremanager.run()
