@@ -5,8 +5,7 @@ from src import (
     cloudflare
 )
 
-class CloudflareManager:
-    
+class CloudflareManager:    
     def __init__(self, adlist_name: str, adlist_urls: list[str],whitelist_urls: list[str]):
         self.adlist_name = adlist_name
         self.adlist_urls = adlist_urls
@@ -127,6 +126,6 @@ if __name__ == "__main__":
     adlist_urls = utils.read_urls_from_file("./lists/adlist.ini")
     whitelist_urls = utils.read_urls_from_file("./lists/whitelist.ini")
     adlist_name = "DNS-Filters"
-    # cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
+    cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
     cloudflaremanager.leave()  # Leave script 
-    cloudflaremanager.run()
+    # cloudflaremanager.run()
