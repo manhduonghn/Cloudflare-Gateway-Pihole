@@ -1,6 +1,7 @@
 from loguru import logger
 from src import (
     utils,
+    commit,
     convert, 
     cloudflare
 )
@@ -12,8 +13,7 @@ class CloudflareManager:
         self.whitelist_urls = whitelist_urls
         self.name_prefix = f"[AdBlock-{adlist_name}]"
 
-    def run(self):
-        
+    def run(self):       
         # Download block and white content 
         block_content = ""
         white_content = ""
@@ -129,3 +129,4 @@ if __name__ == "__main__":
     cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
     # cloudflaremanager.leave()  # Leave script 
     cloudflaremanager.run()
+    commit.auto_commit()
