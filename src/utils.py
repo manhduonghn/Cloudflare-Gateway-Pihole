@@ -5,7 +5,7 @@ from configparser import ConfigParser
 def download_file(url: str):
     logger.info(f"Downloading file from {url}")
     r = requests.get(url, allow_redirects=True)
-    logger.info(f"File size: {len(r.content)}")
+    logger.success(f"File size: {len(r.content)}")
     return r.content.decode("utf-8")
 
 def chunk_list(_list: list[str], n: int):
