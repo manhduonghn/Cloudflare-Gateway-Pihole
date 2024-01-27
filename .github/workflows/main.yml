@@ -8,6 +8,12 @@ jobs:
     name: Cloudflare Gateway
     permissions: write-all
     runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+      GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
 
     steps:
       - name: Checkout Repository
@@ -25,10 +31,6 @@ jobs:
           
       - name: Cloudflare Gateway Zero Trust 
         run: python -m src 
-        env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
-          PYTHONDONTWRITEBYTECODE: 1
           
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@v2
