@@ -3,7 +3,7 @@ from loguru import logger
 from configparser import ConfigParser
 
 def download_file(url: str):
-    logger.info(f"Downloading file from {url}")
+    logger.success(f"Downloading file from {url}")
     r = requests.get(url, allow_redirects=True)
     logger.success(f"File size: {len(r.content)}")
     return r.content.decode("utf-8")
