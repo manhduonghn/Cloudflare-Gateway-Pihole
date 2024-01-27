@@ -21,9 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name : Keep alive 
-        uses: gautamkrishnar/keepalive-workflow@v1
-
       - name: Install Python
         uses: actions/setup-python@v4
         with:
