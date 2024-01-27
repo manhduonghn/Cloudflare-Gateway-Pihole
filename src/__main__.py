@@ -46,7 +46,7 @@ class CloudflareManager:
         
         # check if the list is already in Cloudflare
         cf_lists = cloudflare.get_lists(self.name_prefix)
-        logger.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
+        logger.success(f"Number of lists in Cloudflare: {len(cf_lists)}")
 
         # compare the lists size
         if len(domains) == sum([l["count"] for l in cf_lists]):
@@ -54,7 +54,7 @@ class CloudflareManager:
             cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
 
             if len(cf_policies) == 0:
-                logger.info("No firewall policy found, creating new policy")
+                logger.success("No firewall policy found, creating new policy")
                 cf_policies = cloudflare.create_gateway_policy(
                     f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
                 )
@@ -86,7 +86,7 @@ class CloudflareManager:
 
         # get the gateway policies
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
-        logger.info(f"Number of policies in Cloudflare: {len(cf_policies)}")
+        logger.success(f"Number of policies in Cloudflare: {len(cf_policies)}")
 
         # setup the gateway policy
         if len(cf_policies) == 0:
@@ -100,7 +100,7 @@ class CloudflareManager:
             raise Exception("More than one firewall policy found")
 
         else:
-            logger.info("Updating firewall policy")
+            logger.success("Updating firewall policy")
             cloudflare.update_gateway_policy(
                 f"{self.name_prefix} Block Ads", cf_policies[0]["id"], [l["id"] for l in cf_lists]
             )
