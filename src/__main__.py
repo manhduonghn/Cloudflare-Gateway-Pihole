@@ -69,18 +69,18 @@ class CloudflareManager:
         firewall_policies = cloudflare.get_firewall_policies(policy_prefix)
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
-        logger.info(f"Deleted gateway policies")
+        logger.success(f"Deleted gateway policies")
 
         # delete the lists
         for l in cf_lists:
-            logger.info(f"Deleting list {l['name']} - ID:{l['id']} ")
+            logger.success(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
         cf_lists = []
 
         # chunk the domains into lists of 1000 and create them
         for chunk in utils.chunk_list(domains, 1000):
             list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
-            logger.info(f"Creating list {list_name}")
+            logger.success(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
             cf_lists.append(_list)
 
@@ -104,7 +104,7 @@ class CloudflareManager:
             cloudflare.update_gateway_policy(
                 f"{self.name_prefix} Block Ads", cf_policies[0]["id"], [l["id"] for l in cf_lists]
             )
-        logger.info("Done")
+        logger.success("Done")
 
     def leave(self):
         # Delete gateway policy
@@ -113,14 +113,14 @@ class CloudflareManager:
 
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
-        logger.info(f"Deleted gateway policies")
+        logger.success(f"Deleted gateway policies")
 
         # Delete lists
         cf_lists = cloudflare.get_lists(self.name_prefix)
         for l in cf_lists:
-            logger.info(f"Deleting list {l['name']} - ID:{l['id']} ")
+            logger.success(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
-        logger.info("Deletion completed")
+        logger.success("Deletion completed")
 
 if __name__ == "__main__":
     adlist_urls = utils.read_urls_from_file("./lists/adlist.ini")
