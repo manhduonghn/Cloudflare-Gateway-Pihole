@@ -1,9 +1,9 @@
 import os
 import base64
 import requests
-from datetime import datetime, timedelta
 
-from src import info, error, silent_error 
+from loguru import logger 
+from datetime import datetime, timedelta
 
 github_token = os.getenv("GITHUB_TOKEN")
 repo_owner = os.getenv("GITHUB_REPOSITORY_OWNER")
@@ -47,11 +47,11 @@ def auto_commit():
             response = requests.put(f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/keep-alive', headers=headers, json=data)
 
             if response.status_code == 200:
-                info("Auto commit successful")
+                logger.success("Auto commit successful")
             else:
-                error(f"Failed to create commit. Status code: {response.status_code}, Message: {response.text}")
+                logger.error(f"Failed to create commit. Status code: {response.status_code}, Message: {response.text}")
         else:
-            silent_error("No need commit")
+            logger.warning("No need commit")
 
     except Exception as e:
-        error(f"Error: {e.__class__.__name__} - {str(e)}")
+        logger.error(f"Error: {e.__class__.__name__} - {str(e)}")
