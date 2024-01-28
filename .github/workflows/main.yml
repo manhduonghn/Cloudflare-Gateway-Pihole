@@ -1,5 +1,6 @@
 name: Add Rules to Cloudflare Gateway
 on:
+  push:
   schedule:
     - cron: "10 19 * * 6"
   workflow_dispatch:
@@ -30,7 +31,7 @@ jobs:
         run: python -m src 
           
       - name: Delete workflow runs
-        uses: Mattraks/delete-workflow-runs@master
+        uses: Mattraks/delete-workflow-runs@main
         with:
           token: ${{ github.token }}
           repository: ${{ github.repository }}
