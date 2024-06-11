@@ -1,7 +1,6 @@
 from loguru import logger
 from src import (
     utils,
-    commit,
     convert, 
     cloudflare
 )
@@ -129,4 +128,3 @@ if __name__ == "__main__":
     cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
     # cloudflaremanager.leave()  # Leave script 
     cloudflaremanager.run()
-    commit.auto_commit()
