@@ -75,7 +75,7 @@ class CloudflareManager:
         for l in cf_lists:
             logger.success(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
-            time.sleep(0.5)  # Add delay after each deletion
+            time.sleep(0.7)  # Add delay after each deletion
         cf_lists = []
 
         # chunk the domains into lists of 1000 and create them
@@ -84,7 +84,7 @@ class CloudflareManager:
             logger.success(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
             cf_lists.append(_list)
-            time.sleep(0.5)  # Add delay after each creation
+            time.sleep(0.7)  # Add delay after each creation
 
         # get the gateway policies
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
@@ -122,7 +122,7 @@ class CloudflareManager:
         for l in cf_lists:
             logger.success(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
-            time.sleep(0.5)  # Add delay after each deletion
+            time.sleep(0.7)  # Add delay after each deletion
         logger.success("Deletion completed")
 
 if __name__ == "__main__":
