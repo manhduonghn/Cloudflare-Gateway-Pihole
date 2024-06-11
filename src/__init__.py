@@ -1,8 +1,7 @@
 import os
 import re
-from libs import loguru
-from libs import requests
-from libs.dotenv import load_dotenv
+import requests
+from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 
 
