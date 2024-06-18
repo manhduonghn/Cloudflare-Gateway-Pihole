@@ -117,7 +117,7 @@ class CloudflareManager:
             raise Exception("More than one firewall policy found")
 
         else:
-            logger.success("Updating firewall policy")
+            logger.info("Updating firewall policy")
             cloudflare.update_gateway_policy(
                 f"{self.name_prefix} Block Ads", cf_policies[0]["id"], [l["id"] for l in cf_lists]
             )
@@ -135,7 +135,7 @@ class CloudflareManager:
         # Delete lists
         cf_lists = cloudflare.get_lists(self.name_prefix)
         for l in cf_lists:
-            logger.success(f"Deleting list {l['name']}")
+            logger.info(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
             rate_limiter.wait_for_next_request()
         logger.info("Deletion completed")
