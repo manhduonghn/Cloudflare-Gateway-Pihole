@@ -61,7 +61,7 @@ class CloudflareManager:
         
         # check if the list is already in Cloudflare
         cf_lists = cloudflare.get_lists(self.name_prefix)
-        logger.success(f"Number of lists in Cloudflare: {len(cf_lists)}")
+        logger.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
 
         # compare the lists size
         if len(domains) == sum([l["count"] for l in cf_lists]):
@@ -69,7 +69,7 @@ class CloudflareManager:
             cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
 
             if len(cf_policies) == 0:
-                logger.success("No firewall policy found, creating new policy")
+                logger.info("No firewall policy found, creating new policy")
                 cf_policies = cloudflare.create_gateway_policy(
                     f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
                 )
@@ -84,11 +84,11 @@ class CloudflareManager:
         firewall_policies = cloudflare.get_firewall_policies(policy_prefix)
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
-        logger.success(f"Deleted gateway policies")
+        logger.info(f"Deleted gateway policies")
 
         # delete the lists
         for l in cf_lists:
-            logger.success(f"Deleting list {l['name']}")
+            logger.info(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
             rate_limiter.wait_for_next_request()
         cf_lists = []
@@ -103,7 +103,7 @@ class CloudflareManager:
 
         # get the gateway policies
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
-        logger.success(f"Number of policies in Cloudflare: {len(cf_policies)}")
+        logger.info(f"Number of policies in Cloudflare: {len(cf_policies)}")
 
         # setup the gateway policy
         if len(cf_policies) == 0:
@@ -121,7 +121,7 @@ class CloudflareManager:
             cloudflare.update_gateway_policy(
                 f"{self.name_prefix} Block Ads", cf_policies[0]["id"], [l["id"] for l in cf_lists]
             )
-        logger.success("Done")
+        logger.info("Done")
 
     def leave(self):
         # Delete gateway policy
@@ -130,7 +130,7 @@ class CloudflareManager:
 
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
-        logger.success(f"Deleted gateway policies")
+        logger.info(f"Deleted gateway policies")
 
         # Delete lists
         cf_lists = cloudflare.get_lists(self.name_prefix)
@@ -138,12 +138,12 @@ class CloudflareManager:
             logger.success(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
             rate_limiter.wait_for_next_request()
-        logger.success("Deletion completed")
+        logger.info("Deletion completed")
 
 if __name__ == "__main__":
     adlist_urls = utils.read_urls_from_file("./lists/adlist.ini")
     whitelist_urls = utils.read_urls_from_file("./lists/whitelist.ini")
     adlist_name = "DNS-Filters"
     cloudflaremanager = CloudflareManager(adlist_name, adlist_urls, whitelist_urls)
-    cloudflaremanager.leave()  # Leave script 
-    # cloudflaremanager.run()
+    # cloudflaremanager.leave()  # Leave script 
+    cloudflaremanager.run()
