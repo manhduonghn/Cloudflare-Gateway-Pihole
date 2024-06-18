@@ -1,6 +1,6 @@
 import requests
 from src import (
-    CF_API_TOKEN, CF_IDENTIFIER, session
+    CF_API_TOKEN, CF_IDENTIFIER, session,
     retry, stop_never, wait_random_exponential, retry_if_exception_type
 )
 from requests.exceptions import HTTPError, RequestException
