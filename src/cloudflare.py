@@ -1,6 +1,6 @@
 import requests
 from src import (
-    CF_API_TOKEN, CF_IDENTIFIER, session,
+    CF_API_TOKEN, CF_IDENTIFIER, session, rate_limited_request,
     retry, stop_never, wait_random_exponential, retry_if_exception_type
 )
 from requests.exceptions import HTTPError, RequestException
@@ -31,6 +31,7 @@ def get_lists(name_prefix: str):
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 @retry(**retry_config)
+@rate_limited_request
 def create_list(name: str, domains: list[str]):
     r = session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
@@ -44,6 +45,7 @@ def create_list(name: str, domains: list[str]):
     return r.json()["result"]
 
 @retry(**retry_config)
+@rate_limited_request
 def delete_list(name: str, list_id: str):
     r = session.delete(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists/{list_id}",
