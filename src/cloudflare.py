@@ -4,7 +4,7 @@ from src import (
     retry, stop_never, wait_random_exponential, retry_if_exception_type
 )
 from requests.exceptions import HTTPError, RequestException
-from loguru import logger 
+from src.colorlog import logger 
 
 
 # Tenacity settings
@@ -14,10 +14,10 @@ retry_config = {
         attempt_number, multiplier=1, max_wait=10
     ),
     'retry': retry_if_exception_type((HTTPError, RequestException)),
-    'after': lambda retry_state: info(
+    'after': lambda retry_state: logger.info(
         f"Retrying ({retry_state['attempt_number']}): {retry_state['outcome']}"
     ),
-    'before_sleep': lambda retry_state: info(
+    'before_sleep': lambda retry_state: logger.info(
         f"Sleeping before next retry ({retry_state['attempt_number']})"
     )
 }
