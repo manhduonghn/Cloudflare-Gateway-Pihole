@@ -1,5 +1,5 @@
 import time
-from loguru import logger
+from src.colorlog import logger
 from src import (
     utils,
     convert, 
