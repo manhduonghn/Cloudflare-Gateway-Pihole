@@ -1,4 +1,4 @@
-from loguru import logger
+from src.colorlog import logger
 from src import replace_pattern, domain_pattern, ip_pattern
 
 def convert_to_domain_list(block_content: str, white_content: str) -> list[str]:
