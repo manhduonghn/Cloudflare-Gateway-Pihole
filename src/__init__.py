@@ -4,9 +4,7 @@ import time
 import random
 import requests
 from functools import wraps
-from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
-
 
 # Regex Pattern
 replace_pattern = re.compile(
