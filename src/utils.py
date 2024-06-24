@@ -1,5 +1,5 @@
 import requests
-from loguru import logger
+from src.colorlog import logger
 from configparser import ConfigParser
 
 def download_file(url: str):
