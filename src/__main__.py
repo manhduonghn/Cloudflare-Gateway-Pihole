@@ -6,21 +6,6 @@ from src import (
     cloudflare
 )
 
-class RateLimiter:
-    def __init__(self, interval):
-        self.interval = interval
-        self.timestamp = time.time()
-
-    def wait_for_next_request(self):
-        now = time.time()
-        elapsed = now - self.timestamp
-        sleep_time = max(0, self.interval - elapsed)
-        if (sleep_time > 0):
-            time.sleep(sleep_time)
-        self.timestamp = time.time()
-
-rate_limiter = RateLimiter(interval=1.0)
-
 class CloudflareManager:    
     def __init__(self, adlist_name: str, adlist_urls: list[str], whitelist_urls: list[str]):
         self.adlist_name = adlist_name
@@ -90,7 +75,6 @@ class CloudflareManager:
         for l in cf_lists:
             logger.info(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
-            rate_limiter.wait_for_next_request()
         cf_lists = []
 
         # chunk the domains into lists of 1000 and create them
@@ -99,7 +83,6 @@ class CloudflareManager:
             logger.info(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
             cf_lists.append(_list)
-            rate_limiter.wait_for_next_request()
 
         # get the gateway policies
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
@@ -137,7 +120,6 @@ class CloudflareManager:
         for l in cf_lists:
             logger.info(f"Deleting list {l['name']}")
             cloudflare.delete_list(l["name"], l["id"])
-            rate_limiter.wait_for_next_request()
         logger.info("Deletion completed")
 
 if __name__ == "__main__":
