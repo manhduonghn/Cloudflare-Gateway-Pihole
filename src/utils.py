@@ -3,9 +3,9 @@ from src.colorlog import logger
 from configparser import ConfigParser
 
 def download_file(url: str):
-    logger.success(f"Downloading file from {url}")
+    logger.info(f"Downloading file from {url}")
     r = requests.get(url, allow_redirects=True)
-    logger.success(f"File size: {len(r.content)}")
+    logger.info(f"File size: {len(r.content)}")
     return r.content.decode("utf-8")
 
 def chunk_list(_list: list[str], n: int):
