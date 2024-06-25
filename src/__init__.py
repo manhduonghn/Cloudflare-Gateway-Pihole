@@ -1,11 +1,13 @@
 import os
 import re
+import ssl
 import json 
 import time
 import random
 import http.client
 from io import BytesIO
 from functools import wraps
+from src.colorlog import logger
 from typing import Optional, Tuple
 from http.client import HTTPException
 
@@ -103,7 +105,7 @@ def send_request(method: str, endpoint: str, body: Optional[str] = None) -> Tupl
 
         if status >= 400:
             error_message = get_error_message(status, full_url)
-            info(error_message)
+            logger.info(error_message)
             raise HTTPException(error_message)
 
         if response.getheader('Content-Encoding') == 'gzip':
@@ -116,7 +118,7 @@ def send_request(method: str, endpoint: str, body: Optional[str] = None) -> Tupl
         return response.status, json.loads(data.decode('utf-8'))
 
     except Exception as e:
-        info(f"Request failed: {e}")
+        logger.info(f"Request failed: {e}")
         raise e
 
 def get_error_message(status: int, url: str) -> str:
