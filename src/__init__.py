@@ -2,9 +2,7 @@ import os
 import re
 import time
 import random
-import requests
 from functools import wraps
-from requests.adapters import HTTPAdapter
 
 # Regex Pattern
 replace_pattern = re.compile(
@@ -42,10 +40,6 @@ CF_IDENTIFIER = os.getenv("CF_IDENTIFIER") or env_vars.get("CF_IDENTIFIER")
 
 if not CF_API_TOKEN or not CF_IDENTIFIER:
     raise Exception("Missing Cloudflare credentials")
-
-# Session 
-session = requests.Session()
-session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
 
 # Retry decorator
 def retry(stop=None, wait=None, retry=None, after=None, before_sleep=None):
