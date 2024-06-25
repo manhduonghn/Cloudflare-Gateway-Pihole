@@ -85,20 +85,19 @@ def retry_if_exception_type(exceptions):
 class HTTPException(Exception):
     pass
 
-def send_request(method: str, endpoint: str, body: Optional[str] = None) -> Tuple[int, dict]:
+def cloudflare_gateway_request(method: str, endpoint: str, body: Optional[str] = None, timeout: int = 10) -> Tuple[int, dict]:
     context = ssl.create_default_context()
-    
-    conn = http.client.HTTPSConnection("api.cloudflare.com", context=context)
-    
+    conn = http.client.HTTPSConnection("api.cloudflare.com", context=context, timeout=timeout)
+
     headers = {
         "Authorization": f"Bearer {CF_API_TOKEN}",
         "Content-Type": "application/json",
         "Accept-Encoding": "gzip, deflate"
     }
-    
+
     url = f"/client/v4/accounts/{CF_IDENTIFIER}/gateway{endpoint}"
     full_url = f"https://api.cloudflare.com{url}"
-    
+
     try:
         conn.request(method, url, body, headers)
         response = conn.getresponse()
@@ -107,21 +106,29 @@ def send_request(method: str, endpoint: str, body: Optional[str] = None) -> Tupl
 
         if status >= 400:
             error_message = get_error_message(status, full_url)
-            logger.info(error_message)
+            silent_error(error_message)
             raise HTTPException(error_message)
 
-        if response.getheader('Content-Encoding') == 'gzip':
+        content_encoding = response.getheader('Content-Encoding')
+        if content_encoding == 'gzip':
             buf = BytesIO(data)
             with gzip.GzipFile(fileobj=buf) as f:
                 data = f.read()
-        elif response.getheader('Content-Encoding') == 'deflate':
+        elif content_encoding == 'deflate':
             data = zlib.decompress(data)
 
-        return response.status, json.loads(data.decode('utf-8'))
+        return status, json.loads(data.decode('utf-8'))
 
+    except HTTPException:
+        raise
+    except json.JSONDecodeError:
+        silent_error("Failed to decode JSON response")
+        raise HTTPException("Failed to decode JSON response")
     except Exception as e:
-        logger.info(f"Request failed: {e}")
-        raise e
+        silent_error(f"Request failed: {e}")
+        raise HTTPException(f"Request failed: {e}")
+    finally:
+        conn.close()
 
 def get_error_message(status: int, url: str) -> str:
     error_messages = {
