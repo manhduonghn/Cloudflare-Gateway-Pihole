@@ -1,10 +1,14 @@
 import requests
 from src import (
-    CF_API_TOKEN, CF_IDENTIFIER, session, rate_limited_request,
+    CF_API_TOKEN, CF_IDENTIFIER, rate_limited_request,
     retry, stop_never, wait_random_exponential, retry_if_exception_type
 )
 from requests.exceptions import HTTPError, RequestException
 from src.colorlog import logger 
+
+# Session 
+session = requests.Session()
+session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
 
 
 # Tenacity settings
