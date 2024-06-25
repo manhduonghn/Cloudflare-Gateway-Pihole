@@ -1,7 +1,9 @@
 import os
 import re
+import json 
 import time
 import random
+import http.client
 from functools import wraps
 
 # Regex Pattern
@@ -74,6 +76,38 @@ def wait_random_exponential(attempt_number, multiplier=1, max_wait=10):
 
 def retry_if_exception_type(exceptions):
     return lambda e: isinstance(e, exceptions)
+
+# Utility function to create a connection and send requests
+def send_request(method, url, body=None):
+    conn = http.client.HTTPSConnection("api.cloudflare.com")
+    path = f"/client/v4/accounts/{CF_IDENTIFIER}/{url}"
+    headers = {"Authorization": f"Bearer {CF_API_TOKEN}", "Content-Type": "application/json"}
+    
+    if body is not None:
+        body = json.dumps(body)
+        
+    conn.request(method, path, body, headers)
+    response = conn.getresponse()
+    
+    if response.status != 200:
+        raise Exception(f"Failed request with status code {response.status}")
+        
+    return json.loads(response.read().decode())
+
+# Tenacity settings
+retry_config = {
+    'stop': stop_never,
+    'wait': lambda attempt_number: wait_random_exponential(
+        attempt_number, multiplier=1, max_wait=10
+    ),
+    'retry': retry_if_exception_type((http.client.HTTPException, Exception)),
+    'after': lambda retry_state: logger.info(
+        f"Retrying ({retry_state['attempt_number']}): {retry_state['outcome']}"
+    ),
+    'before_sleep': lambda retry_state: logger.info(
+        f"Sleeping before next retry ({retry_state['attempt_number']})"
+    )
+}
 
 # Rate limiter
 class RateLimiter:
