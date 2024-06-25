@@ -3,6 +3,8 @@ import re
 import ssl
 import json 
 import time
+import gzip
+import zlib
 import random
 import http.client
 from io import BytesIO
@@ -142,7 +144,7 @@ retry_config = {
     'wait': lambda attempt_number: wait_random_exponential(
         attempt_number, multiplier=1, max_wait=10
     ),
-    'retry': retry_if_exception_type((http.client.HTTPException, Exception)),
+    'retry': retry_if_exception_type((HTTPException, Exception)),
     'after': lambda retry_state: logger.info(
         f"Retrying ({retry_state['attempt_number']}): {retry_state['outcome']}"
     ),
