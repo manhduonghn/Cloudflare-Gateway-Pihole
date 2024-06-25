@@ -1,42 +1,8 @@
-import http.client
 import json
 from src import (
-    CF_API_TOKEN, CF_IDENTIFIER, rate_limited_request,
-    retry, stop_never, wait_random_exponential, retry_if_exception_type
+    CF_API_TOKEN, CF_IDENTIFIER, rate_limited_request, send_request, retry_config
 )
 from src.colorlog import logger 
-
-# Utility function to create a connection and send requests
-def send_request(method, url, body=None):
-    conn = http.client.HTTPSConnection("api.cloudflare.com")
-    path = f"/client/v4/accounts/{CF_IDENTIFIER}/{url}"
-    headers = {"Authorization": f"Bearer {CF_API_TOKEN}", "Content-Type": "application/json"}
-    
-    if body is not None:
-        body = json.dumps(body)
-        
-    conn.request(method, path, body, headers)
-    response = conn.getresponse()
-    
-    if response.status != 200:
-        raise Exception(f"Failed request with status code {response.status}")
-        
-    return json.loads(response.read().decode())
-
-# Tenacity settings
-retry_config = {
-    'stop': stop_never,
-    'wait': lambda attempt_number: wait_random_exponential(
-        attempt_number, multiplier=1, max_wait=10
-    ),
-    'retry': retry_if_exception_type((http.client.HTTPException, Exception)),
-    'after': lambda retry_state: logger.info(
-        f"Retrying ({retry_state['attempt_number']}): {retry_state['outcome']}"
-    ),
-    'before_sleep': lambda retry_state: logger.info(
-        f"Sleeping before next retry ({retry_state['attempt_number']})"
-    )
-}
 
 @retry(**retry_config)
 def get_lists(name_prefix: str):
