@@ -4,7 +4,10 @@ import json
 import time
 import random
 import http.client
+from io import BytesIO
 from functools import wraps
+from typing import Optional, Tuple
+from http.client import HTTPException
 
 # Regex Pattern
 replace_pattern = re.compile(
