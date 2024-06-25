@@ -1,6 +1,7 @@
 import json
 from src import (
-    CF_API_TOKEN, CF_IDENTIFIER, rate_limited_request, send_request, retry_config
+    CF_API_TOKEN, CF_IDENTIFIER, 
+    retry, rate_limited_request, send_request, retry_config
 )
 from src.colorlog import logger 
 
