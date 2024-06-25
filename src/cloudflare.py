@@ -1,15 +1,27 @@
-import requests
+import http.client
+import json
 from src import (
     CF_API_TOKEN, CF_IDENTIFIER, rate_limited_request,
     retry, stop_never, wait_random_exponential, retry_if_exception_type
 )
-from requests.exceptions import HTTPError, RequestException
 from src.colorlog import logger 
 
-# Session 
-session = requests.Session()
-session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
-
+# Utility function to create a connection and send requests
+def send_request(method, url, body=None):
+    conn = http.client.HTTPSConnection("api.cloudflare.com")
+    path = f"/client/v4/accounts/{CF_IDENTIFIER}/{url}"
+    headers = {"Authorization": f"Bearer {CF_API_TOKEN}", "Content-Type": "application/json"}
+    
+    if body is not None:
+        body = json.dumps(body)
+        
+    conn.request(method, path, body, headers)
+    response = conn.getresponse()
+    
+    if response.status != 200:
+        raise Exception(f"Failed request with status code {response.status}")
+        
+    return json.loads(response.read().decode())
 
 # Tenacity settings
 retry_config = {
@@ -17,7 +29,7 @@ retry_config = {
     'wait': lambda attempt_number: wait_random_exponential(
         attempt_number, multiplier=1, max_wait=10
     ),
-    'retry': retry_if_exception_type((HTTPError, RequestException)),
+    'retry': retry_if_exception_type((http.client.HTTPException, Exception)),
     'after': lambda retry_state: logger.info(
         f"Retrying ({retry_state['attempt_number']}): {retry_state['outcome']}"
     ),
@@ -28,83 +40,67 @@ retry_config = {
 
 @retry(**retry_config)
 def get_lists(name_prefix: str):
-    r = session.get(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
-    )
-    lists = r.json()["result"] or []
+    response = send_request("GET", "gateway/lists")
+    lists = response["result"] or []
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 @retry(**retry_config)
 @rate_limited_request
 def create_list(name: str, domains: list[str]):
-    r = session.post(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
-        json={
-            "name": name,
-            "description": "Ads & Tracking Domains",
-            "type": "DOMAIN",
-            "items": [{"value": domain} for domain in domains],
-        },
-    )
-    return r.json()["result"]
+    body = {
+        "name": name,
+        "description": "Ads & Tracking Domains",
+        "type": "DOMAIN",
+        "items": [{"value": domain} for domain in domains],
+    }
+    response = send_request("POST", "gateway/lists", body)
+    return response["result"]
 
 @retry(**retry_config)
 @rate_limited_request
 def delete_list(name: str, list_id: str):
-    r = session.delete(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists/{list_id}",
-    )
-    if r.status_code != 200:
-        raise Exception("Failed to delete Cloudflare list")
-    return r.json()["result"]
+    response = send_request("DELETE", f"gateway/lists/{list_id}")
+    return response["result"]
 
 @retry(**retry_config)
 def get_firewall_policies(name_prefix: str):
-    r = session.get(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
-    )
-    lists = r.json()["result"] or []
+    response = send_request("GET", "gateway/rules")
+    lists = response["result"] or []
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 @retry(**retry_config)
 def create_gateway_policy(name: str, list_ids: list[str]):
-    r = session.post(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
-        json={
-            "name": name,
-            "description": "Block Ads & Tracking",
-            "action": "block",
-            "enabled": True,
-            "filters": ["dns"],
-            "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
-            "rule_settings": {
-                "block_page_enabled": False,
-            },
+    body = {
+        "name": name,
+        "description": "Block Ads & Tracking",
+        "action": "block",
+        "enabled": True,
+        "filters": ["dns"],
+        "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
+        "rule_settings": {
+            "block_page_enabled": False,
         },
-    )
-    return r.json()["result"]
+    }
+    response = send_request("POST", "gateway/rules", body)
+    return response["result"]
 
 @retry(**retry_config)
 def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
-    r = session.put(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
-        json={
-            "name": name,
-            "description": "Block Ads & Tracking",
-            "action": "block",
-            "enabled": True,
-            "filters": ["dns"],
-            "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
-            "rule_settings": {
-                "block_page_enabled": False,
-            },
+    body = {
+        "name": name,
+        "description": "Block Ads & Tracking",
+        "action": "block",
+        "enabled": True,
+        "filters": ["dns"],
+        "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
+        "rule_settings": {
+            "block_page_enabled": False,
         },
-    )
-    return r.json()["result"]
+    }
+    response = send_request("PUT", f"gateway/rules/{policy_id}", body)
+    return response["result"]
 
 @retry(**retry_config)
 def delete_gateway_policy(policy_id: str):    
-    r = session.delete(
-        f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
-    )
-    return r.json()["result"]
+    response = send_request("DELETE", f"gateway/rules/{policy_id}")
+    return response["result"]
