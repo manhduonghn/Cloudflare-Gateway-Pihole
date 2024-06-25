@@ -20,7 +20,7 @@ ip_pattern = re.compile(
 # Read .env
 def dot_env(file_path=".env"):
     env_vars = {}
-    try:
+    if os.path.exists(file_path):
         with open(file_path) as f:
             for line in f:
                 line = line.strip()
@@ -30,8 +30,6 @@ def dot_env(file_path=".env"):
                     value = value.strip()
                     value = re.sub(r'^["\'<]*(.*?)["\'>]*$', r'\1', value)
                     env_vars[key] = value
-    except FileNotFoundError:
-        raise Exception(f"File {file_path} not found")
     return env_vars
 
 # Load variables
@@ -39,7 +37,6 @@ env_vars = dot_env()
 
 CF_API_TOKEN = os.getenv("CF_API_TOKEN") or env_vars.get("CF_API_TOKEN")
 CF_IDENTIFIER = os.getenv("CF_IDENTIFIER") or env_vars.get("CF_IDENTIFIER")
-
 if not CF_API_TOKEN or not CF_IDENTIFIER:
     raise Exception("Missing Cloudflare credentials")
 
@@ -78,21 +75,61 @@ def retry_if_exception_type(exceptions):
     return lambda e: isinstance(e, exceptions)
 
 # Utility function to create a connection and send requests
-def send_request(method, url, body=None):
-    conn = http.client.HTTPSConnection("api.cloudflare.com")
-    path = f"/client/v4/accounts/{CF_IDENTIFIER}/{url}"
-    headers = {"Authorization": f"Bearer {CF_API_TOKEN}", "Content-Type": "application/json"}
+class HTTPException(Exception):
+    pass
+
+def send_request(method: str, endpoint: str, body: Optional[str] = None) -> Tuple[int, dict]:
+    context = ssl.create_default_context()
     
-    if body is not None:
-        body = json.dumps(body)
-        
-    conn.request(method, path, body, headers)
-    response = conn.getresponse()
+    conn = http.client.HTTPSConnection("api.cloudflare.com", context=context)
     
-    if response.status != 200:
-        raise Exception(f"Failed request with status code {response.status}")
-        
-    return json.loads(response.read().decode())
+    headers = {
+        "Authorization": f"Bearer {CF_API_TOKEN}",
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip, deflate"
+    }
+    
+    url = f"/client/v4/accounts/{CF_IDENTIFIER}/gateway{endpoint}"
+    full_url = f"https://api.cloudflare.com{url}"
+    
+    try:
+        conn.request(method, url, body, headers)
+        response = conn.getresponse()
+        data = response.read()
+        status = response.status
+
+        if status >= 400:
+            error_message = get_error_message(status, full_url)
+            info(error_message)
+            raise HTTPException(error_message)
+
+        if response.getheader('Content-Encoding') == 'gzip':
+            buf = BytesIO(data)
+            with gzip.GzipFile(fileobj=buf) as f:
+                data = f.read()
+        elif response.getheader('Content-Encoding') == 'deflate':
+            data = zlib.decompress(data)
+
+        return response.status, json.loads(data.decode('utf-8'))
+
+    except Exception as e:
+        info(f"Request failed: {e}")
+        raise e
+
+def get_error_message(status: int, url: str) -> str:
+    error_messages = {
+        400: "400 Client Error: Bad Request",
+        401: "401 Client Error: Unauthorized",
+        403: "403 Client Error: Forbidden",
+        404: "404 Client Error: Not Found",
+        429: "429 Client Error: Too Many Requests"
+    }
+    if status in error_messages:
+        return f"{error_messages[status]} for url: {url}"
+    elif status >= 500:
+        return f"{status} Server Error for url: {url}"
+    else:
+        return f"HTTP request failed with status {status} for url: {url}"
 
 # Tenacity settings
 retry_config = {
