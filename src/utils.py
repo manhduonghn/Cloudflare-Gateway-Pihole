@@ -19,7 +19,7 @@ def download_file(url: str):
     response = conn.getresponse()
     
     if response.status != 200:
-        raise Exception(f"Failed to download file with status code {response.status}")
+        logger.error(f"Failed to download file with status code {response.status}")
 
     content = response.read()
     logger.info(f"File size: {len(content)}")
