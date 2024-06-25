@@ -68,5 +68,5 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
 
 @retry(**retry_config)
 def delete_gateway_policy(policy_id: str):    
-    status, response = send_request("DELETE", f"/rules/{policy_id}")
+    status, response = cloudflare_gateway_request("DELETE", f"/rules/{policy_id}")
     return response["result"]
