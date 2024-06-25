@@ -1,12 +1,29 @@
-import requests
+import http.client
 from src.colorlog import logger
 from configparser import ConfigParser
 
 def download_file(url: str):
     logger.info(f"Downloading file from {url}")
-    r = requests.get(url, allow_redirects=True)
-    logger.info(f"File size: {len(r.content)}")
-    return r.content.decode("utf-8")
+
+    # Parse the URL
+    if url.startswith("https://"):
+        url = url[8:]
+    elif url.startswith("http://"):
+        url = url[7:]
+    
+    host, path = url.split("/", 1)
+    path = "/" + path
+
+    conn = http.client.HTTPSConnection(host)
+    conn.request("GET", path)
+    response = conn.getresponse()
+    
+    if response.status != 200:
+        raise Exception(f"Failed to download file with status code {response.status}")
+
+    content = response.read()
+    logger.info(f"File size: {len(content)}")
+    return content.decode("utf-8")
 
 def chunk_list(_list: list[str], n: int):
     for i in range(0, len(_list), n):
