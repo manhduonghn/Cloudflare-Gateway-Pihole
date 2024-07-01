@@ -100,7 +100,7 @@ class CloudflareManager:
             cloudflare.delete_list(l["name"], l["id"])
         logger.info("Deletion completed")
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Cloudflare Manager Script")
     parser.add_argument("action", choices=["run", "leave"], help="Choose action: run or leave")
     args = parser.parse_args()
