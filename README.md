@@ -1,7 +1,3 @@
-# Credit
-
-This repository modified from source [IanDesuyo/CloudflareGatewayAdBlock](https://github.com/IanDesuyo/CloudflareGatewayAdBlock)
-
 # Note
 
 * This repository makes normal requests
