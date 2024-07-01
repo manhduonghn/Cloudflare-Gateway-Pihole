@@ -1,5 +1,5 @@
 import json
-from src import (
+from src.requests import (
     rate_limited_request,retry, cloudflare_gateway_request, retry_config 
 )
 from src.colorlog import logger
