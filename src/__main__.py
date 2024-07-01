@@ -2,7 +2,7 @@ import time
 from src.colorlog import logger
 from src import (
     utils,
-    convert, 
+    domains, 
     cloudflare
 )
 
@@ -14,26 +14,9 @@ class CloudflareManager:
         self.name_prefix = f"[AdBlock-{adlist_name}]"
 
     def run(self):       
-        # Download block and white content 
-        block_content = ""
-        white_content = ""
-        for url in self.adlist_urls:
-            block_content += utils.download_file(url) 
-        for url in self.whitelist_urls:
-            white_content += utils.download_file(url)
-
-        # Add dynamic black list
-        with open("./lists/dynamic_blacklist.txt", "r") as black_file:
-            blacklist_content = black_file.read()
-            block_content += blacklist_content
+        converter = domains.DomainConverter()
+        domains = converter.process_urls()
         
-        # Add dynamic white list 
-        with open("./lists/dynamic_whitelist.txt", "r") as white_file:
-            whitelist_content = white_file.read()
-            white_content += whitelist_content
-        
-        domains = convert.convert_to_domain_list(block_content, white_content)
-
         # check if number of domains exceeds the limit
         if len(domains) == 0:
             logger.warning("No domains found in the adlist file. Exiting script.")
