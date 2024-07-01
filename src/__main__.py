@@ -30,7 +30,7 @@ class CloudflareManager:
         logger.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
 
         # compare the lists size
-        if len(domains) == sum([l["count"] for l in cf_lists]):
+        if len(domain_list) == sum([l["count"] for l in cf_lists]):
             logger.warning("Lists are the same size, checking policy")
             cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
 
