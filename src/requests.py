@@ -7,6 +7,7 @@ import http.client
 import socket
 import urllib.parse
 import zlib
+from sys import exit
 from io import BytesIO
 from functools import wraps
 from src.colorlog import logger 
