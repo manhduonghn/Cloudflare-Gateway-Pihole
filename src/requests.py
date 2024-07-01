@@ -11,7 +11,7 @@ from io import BytesIO
 from functools import wraps
 from src.colorlog import logger 
 from typing import Optional, Tuple
-from src import info, silent_error, error, RATE_LIMIT_INTERVAL, CF_IDENTIFIER, CF_API_TOKEN
+from src import RATE_LIMIT_INTERVAL, CF_IDENTIFIER, CF_API_TOKEN
 
 class HTTPException(Exception):
     pass
