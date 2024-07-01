@@ -1,5 +1,6 @@
 import time
 import argparse
+from sys import exit
 from src.colorlog import logger
 from src import utils, domains, cloudflare
 
@@ -111,7 +112,8 @@ def main():
     elif args.action == "leave":
         cloudflare_manager.leave()
     else:
-        error("Invalid action. Please choose either 'python -m src run' or 'python -m src leave'.")
+        loger.error("Invalid action. Please choose either 'python -m src run' or 'python -m src leave'.")
+        exit(1)
 
 if __name__ == "__main__":
     main()
