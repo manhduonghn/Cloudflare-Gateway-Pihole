@@ -3,6 +3,7 @@ import http.client
 from urllib.parse import urlparse
 from configparser import ConfigParser
 from src.colorlog import logger
+from src import convert
 
 class DomainConverter:
     def __init__(self):
