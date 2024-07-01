@@ -13,15 +13,15 @@ class CloudflareManager:
 
     def run(self):       
         converter = domains.DomainConverter()
-        domains = converter.process_urls()
+        domain_list = converter.process_urls()
         
         # check if number of domains exceeds the limit
-        if len(domains) == 0:
+        if len(domain_list) == 0:
             logger.warning("No domains found in the adlist file. Exiting script.")
             return 
         
         # stop script if the number of final domains exceeds the limit
-        if len(domains) > 300000:
+        if len(domain_list) > 300000:
             logger.warning("The number of final domains exceeds the limit. Exiting script.")
             return
         
@@ -59,7 +59,7 @@ class CloudflareManager:
         cf_lists = []
 
         # chunk the domains into lists of 1000 and create them
-        for chunk in utils.chunk_list(domains, 1000):
+        for chunk in utils.chunk_list(domain_list, 1000):
             list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
             logger.info(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
