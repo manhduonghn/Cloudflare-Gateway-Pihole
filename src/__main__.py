@@ -101,12 +101,9 @@ class CloudflareManager:
         logger.info("Deletion completed")
 
 if __name__ == "__main__":
-    if args.action == "run":
-        cloudflare_manager.run()
-    elif args.action == "leave":
-        cloudflare_manager.leave()
-    else:
-        error("Invalid action. Please choose either 'python -m src run' or 'python -m src leave'.")
+    parser = argparse.ArgumentParser(description="Cloudflare Manager Script")
+    parser.add_argument("action", choices=["run", "leave"], help="Choose action: run or leave")
+    args = parser.parse_args()
     adlist_name = "DNS-Filters"
     cloudflaremanager = CloudflareManager(adlist_name)
     if args.action == "run":
