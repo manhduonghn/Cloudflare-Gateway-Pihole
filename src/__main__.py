@@ -1,10 +1,7 @@
 import time
+import argparse
 from src.colorlog import logger
-from src import (
-    utils,
-    domains, 
-    cloudflare
-)
+from src import utils, domains, cloudflare
 
 class CloudflareManager:    
     def __init__(self, adlist_name: str):
@@ -104,7 +101,20 @@ class CloudflareManager:
         logger.info("Deletion completed")
 
 if __name__ == "__main__":
+    if args.action == "run":
+        cloudflare_manager.run()
+    elif args.action == "leave":
+        cloudflare_manager.leave()
+    else:
+        error("Invalid action. Please choose either 'python -m src run' or 'python -m src leave'.")
     adlist_name = "DNS-Filters"
     cloudflaremanager = CloudflareManager(adlist_name)
-    # cloudflaremanager.leave()  # Leave script 
-    cloudflaremanager.run()
+    if args.action == "run":
+        cloudflare_manager.run()
+    elif args.action == "leave":
+        cloudflare_manager.leave()
+    else:
+        error("Invalid action. Please choose either 'python -m src run' or 'python -m src leave'.")
+
+if __name__ == "__main__":
+    main()
