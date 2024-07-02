@@ -1,6 +1,6 @@
 import json
 from src.requests import (
-    rate_limited_request,retry, cloudflare_gateway_request, retry_config 
+    rate_limited_request, retry, cloudflare_gateway_request, retry_config
 )
 from src.colorlog import logger
 
@@ -29,10 +29,24 @@ def delete_list(name: str, list_id: str):
     return response["result"]
 
 @retry(**retry_config)
+def get_list_items(list_id: str):
+    status, response = cloudflare_gateway_request("GET", f"/lists/{list_id}/items")
+    return response["result"]
+
+@retry(**retry_config)
+@rate_limited_request
+def patch_list(list_id: str, domains: list[str]):
+    body = json.dumps({
+        "items": [{"value": domain} for domain in domains],
+    })
+    status, response = cloudflare_gateway_request("PATCH", f"/lists/{list_id}", body)
+    return response["result"]
+
+@retry(**retry_config)
 def get_firewall_policies(name_prefix: str):
     status, response = cloudflare_gateway_request("GET", "/rules")
-    lists = response["result"] or []
-    return [l for l in lists if l["name"].startswith(name_prefix)]
+    policies = response["result"] or []
+    return [p for p in policies if p["name"].startswith(name_prefix)]
 
 @retry(**retry_config)
 def create_gateway_policy(name: str, list_ids: list[str]):
@@ -67,6 +81,6 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
     return response["result"]
 
 @retry(**retry_config)
-def delete_gateway_policy(policy_id: str):    
+def delete_gateway_policy(policy_id: str):
     status, response = cloudflare_gateway_request("DELETE", f"/rules/{policy_id}")
     return response["result"]
