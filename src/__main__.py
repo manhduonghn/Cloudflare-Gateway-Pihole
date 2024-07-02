@@ -35,7 +35,6 @@ class CloudflareManager:
                 list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
                 logger.info(f"Creating list {list_name}")
                 new_list = cloudflare.create_list(list_name, chunk)
-                cf_lists.append(new_list)
                 list_ids.append(new_list['id'])
 
         # Create or update policy with the current list of IDs
