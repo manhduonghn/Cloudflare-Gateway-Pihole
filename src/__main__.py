@@ -54,19 +54,7 @@ class CloudflareManager:
                 new_list = cloudflare.create_list(list_name, chunk)
                 cf_lists.append(new_list)
 
-        # Delete any extra lists
-        for i in range(len(domain_chunks), len(cf_lists)):
-            logger.info(f"Deleting list {cf_lists[i]['name']}")
-            cloudflare.delete_list(cf_lists[i]['name'], cf_lists[i]['id'])
-
-        cf_lists = cf_lists[:len(domain_chunks)]
-
-        policy_prefix = f"{self.name_prefix} Block Ads"
-        firewall_policies = cloudflare.get_firewall_policies(policy_prefix)
-        for policy in firewall_policies:
-            cloudflare.delete_gateway_policy(policy["id"])
-        logger.info(f"Deleted gateway policies")
-
+        # Create or update policy before deleting any extra lists
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
         logger.info(f"Number of policies in Cloudflare: {len(cf_policies)}")
 
@@ -75,14 +63,19 @@ class CloudflareManager:
             cloudflare.create_gateway_policy(
                 f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
             )
-        elif len(cf_policies) != 1:
-            logger.error("More than one firewall policy found")
-            raise Exception("More than one firewall policy found")
         else:
             logger.info("Updating firewall policy")
             cloudflare.update_gateway_policy(
                 f"{self.name_prefix} Block Ads", cf_policies[0]["id"], [l["id"] for l in cf_lists]
             )
+
+        # Delete any extra lists
+        for i in range(len(domain_chunks), len(cf_lists)):
+            logger.info(f"Deleting list {cf_lists[i]['name']}")
+            cloudflare.delete_list(cf_lists[i]['name'], cf_lists[i]['id'])
+
+        cf_lists = cf_lists[:len(domain_chunks)]
+
         logger.info("Done")
 
     def leave(self):
