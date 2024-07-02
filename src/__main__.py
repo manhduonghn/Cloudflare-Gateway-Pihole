@@ -42,22 +42,30 @@ class CloudflareManager:
                 return
             return
 
+        # Update existing lists or create new lists if needed
+        domain_chunks = utils.chunk_list(domain_list, 1000)
+        for i, chunk in enumerate(domain_chunks):
+            if i < len(cf_lists):
+                logger.info(f"Updating list {cf_lists[i]['name']}")
+                cloudflare.patch_list(cf_lists[i]['id'], chunk)
+            else:
+                list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
+                logger.info(f"Creating list {list_name}")
+                new_list = cloudflare.create_list(list_name, chunk)
+                cf_lists.append(new_list)
+
+        # Delete any extra lists
+        for i in range(len(domain_chunks), len(cf_lists)):
+            logger.info(f"Deleting list {cf_lists[i]['name']}")
+            cloudflare.delete_list(cf_lists[i]['name'], cf_lists[i]['id'])
+
+        cf_lists = cf_lists[:len(domain_chunks)]
+
         policy_prefix = f"{self.name_prefix} Block Ads"
         firewall_policies = cloudflare.get_firewall_policies(policy_prefix)
         for policy in firewall_policies:
             cloudflare.delete_gateway_policy(policy["id"])
         logger.info(f"Deleted gateway policies")
-
-        for l in cf_lists:
-            logger.info(f"Deleting list {l['name']}")
-            cloudflare.delete_list(l["name"], l["id"])
-        cf_lists = []
-
-        for chunk in utils.chunk_list(domain_list, 1000):
-            list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
-            logger.info(f"Creating list {list_name}")
-            _list = cloudflare.create_list(list_name, chunk)
-            cf_lists.append(_list)
 
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
         logger.info(f"Number of policies in Cloudflare: {len(cf_policies)}")
