@@ -43,7 +43,7 @@ class CloudflareManager:
             return
 
         # Update existing lists or create new lists if needed
-        domain_chunks = utils.chunk_list(domain_list, 1000)
+        domain_chunks = list(utils.chunk_list(domain_list, 1000))
         for i, chunk in enumerate(domain_chunks):
             if i < len(cf_lists):
                 logger.info(f"Updating list {cf_lists[i]['name']}")
