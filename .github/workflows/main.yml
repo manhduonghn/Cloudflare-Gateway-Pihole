@@ -25,7 +25,7 @@ jobs:
           python-version: 3.11
     
       - name: Cloudflare Gateway Zero Trust 
-        run: python -m src leave
+        run: python -m src run
           
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
