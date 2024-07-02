@@ -22,11 +22,6 @@ class CloudflareManager:
 
         cf_lists = cloudflare.get_lists(self.name_prefix)
         logger.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
-
-        existing_domains = []
-        for lst in cf_lists:
-            items = cloudflare.get_list_items(lst['id'])
-            existing_domains.extend([item['value'] for item in items])
             
         # Update existing lists or create new lists if needed
         domain_chunks = list(utils.chunk_list(domain_list, 1000))
