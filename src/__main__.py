@@ -23,39 +23,26 @@ class CloudflareManager:
         cf_lists = cloudflare.get_lists(self.name_prefix)
         logger.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
 
-        existing_domains = []
-        for lst in cf_lists:
-            items = cloudflare.get_list_items(lst['id'])
-            existing_domains.extend([item['value'] for item in items])
-
-        if set(domain_list) == set(existing_domains):
-            logger.warning("No changes detected in the domains list.")
-            cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
-
-            if len(cf_policies) == 0:
-                logger.info("No firewall policy found, creating new policy")
-                cloudflare.create_gateway_policy(
-                    f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
-                )
-            else:
-                logger.warning("Firewall policy already exists, exiting script")
-                return
-            return
-
-        # Update existing lists or create new lists if needed
-        domain_chunks = list(utils.chunk_list(domain_list, 1000))
         list_ids = []
-        for i, chunk in enumerate(domain_chunks):
-            if i < len(cf_lists):
-                logger.info(f"Updating list {cf_lists[i]['name']}")
-                cloudflare.patch_list(cf_lists[i]['id'], chunk)
-                list_ids.append(cf_lists[i]['id'])
+
+        for i, lst in enumerate(cf_lists):
+            items = cloudflare.get_list_items(lst['id'])
+            existing_domains = [item['value'] for item in items]
+
+            if set(domain_list) != set(existing_domains):
+                logger.info(f"Updating list {lst['name']}")
+                cloudflare.patch_list(lst['id'], domain_list)
             else:
-                list_name = f"{self.name_prefix} - {len(cf_lists) + 1:03d}"
-                logger.info(f"Creating list {list_name}")
-                new_list = cloudflare.create_list(list_name, chunk)
-                cf_lists.append(new_list)
-                list_ids.append(new_list['id'])
+                logger.info(f"No changes detected in the list {lst['name']}")
+            
+            list_ids.append(lst['id'])
+
+        # Create new list if no existing lists match
+        if not cf_lists:
+            list_name = f"{self.name_prefix} - 001"
+            logger.info(f"Creating list {list_name}")
+            new_list = cloudflare.create_list(list_name, domain_list)
+            list_ids.append(new_list['id'])
 
         # Create or update policy with the current list of IDs
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
@@ -74,11 +61,6 @@ class CloudflareManager:
             cloudflare.update_gateway_policy(
                 f"{self.name_prefix} Block Ads", cf_policies[0]["id"], list_ids
             )
-
-        # Delete any extra lists
-        for i in range(len(domain_chunks), len(cf_lists)):
-            logger.info(f"Deleting list {cf_lists[i]['name']}")
-            cloudflare.delete_list(cf_lists[i]['name'], cf_lists[i]['id'])
 
         logger.info("Done")
 
